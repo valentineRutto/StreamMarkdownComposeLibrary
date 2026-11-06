@@ -24,4 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "StreamMarkdownComposeLibrary"
 include(":app")
- 
+include(":streammarkdowncompose")
