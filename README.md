@@ -1,6 +1,6 @@
-# StreamMarkdownCompose
+# StreamMarkdownComposeLibrary
 
-StreamMarkdownCompose — A native Android streaming content renderer for AI applications.
+StreamMarkdownCompose — A native Android streaming content renderer Library for AI applications.
 
 Send a stream. Let the library figure out how to render it.
 
