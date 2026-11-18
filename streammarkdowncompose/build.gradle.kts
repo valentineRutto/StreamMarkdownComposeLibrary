@@ -9,12 +9,6 @@ android {
         version = release(37)
     }
 
-    sourceSets {
-        named("main") {
-            kotlin.directories.add("src/main")
-        }
-    }
-
     defaultConfig {
         minSdk = 24
 
