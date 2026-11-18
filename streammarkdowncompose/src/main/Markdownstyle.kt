@@ -40,7 +40,9 @@ fun markdownStyle(): MarkdownStyle {
     val dark = cs.background.luminance() < 0.5f
     return remember(cs, ty) {
         val bold = FontWeight.Bold
+
         MarkdownStyle(
+
             body = ty.bodyLarge.copy(color = cs.onSurface),
             headings = listOf(
                 ty.headlineSmall.copy(fontWeight = bold, color = cs.onSurface),

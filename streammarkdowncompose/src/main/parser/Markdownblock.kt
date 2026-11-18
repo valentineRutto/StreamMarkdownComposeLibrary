@@ -1,4 +1,4 @@
-package streamingmd
+package com.valentinerutto.streammarkdowncompose
 
 import androidx.compose.runtime.Immutable
 
