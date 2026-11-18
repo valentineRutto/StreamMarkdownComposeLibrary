@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
@@ -105,13 +107,10 @@ private fun MarkdownBlockView(block: MarkdownBlock, style: MarkdownStyle, highli
         is Heading -> InlineText(block.text, style.headings[(block.level - 1).coerceIn(0, 5)], style)
         is CodeBlock -> CodeBlockView(block, style, highlighter)
         is ListBlock -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            block.items.forEach { item ->
-                Row(Modifier.padding(start = (item.depth * 16).dp)) {
-                    Text(item.marker, style = style.body, modifier = Modifier.widthIn(min = 22.dp))
-                    InlineText(item.text, style.body, style, Modifier.weight(1f))
-                }
-            }
+            block.items.forEach { item -> ListItemView(item, style) }
         }
+        is TableBlock -> TableView(block, style)
+        is HtmlBlock -> InlineText(block.html, style.body, style)
         is Quote -> Row(Modifier.height(IntrinsicSize.Min)) {
             Box(Modifier.width(3.dp).fillMaxHeight().background(style.quoteBar))
             Spacer(Modifier.width(10.dp))
@@ -119,6 +118,79 @@ private fun MarkdownBlockView(block: MarkdownBlock, style: MarkdownStyle, highli
         }
         Divider -> Box(Modifier.fillMaxWidth().height(1.dp).background(style.quoteBar))
     }
+}
+
+@Composable
+private fun ListItemView(item: ListItem, style: MarkdownStyle) {
+    Column(Modifier.padding(start = (item.depth * 16).dp)) {
+        Row(verticalAlignment = Alignment.Top) {
+            if (item.task != null) {
+                Checkbox(
+                    checked = item.task == TaskState.Checked,
+                    onCheckedChange = null,
+                    modifier = Modifier.widthIn(min = 44.dp).height(44.dp),
+                )
+            } else {
+                Text(item.marker, style = style.body, modifier = Modifier.widthIn(min = 22.dp))
+            }
+            InlineText(item.text, style.body, style, Modifier.weight(1f))
+        }
+        item.children.forEach { child -> ListItemView(child, style) }
+    }
+}
+
+@Composable
+private fun TableView(block: TableBlock, style: MarkdownStyle) {
+    val columnCount = block.headers.size
+    if (columnCount == 0) return
+
+    SelectionContainer {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .clip(style.codeShape)
+                .background(style.codeBackground),
+        ) {
+            Column {
+                TableRow(block.headers, block.alignments, style, isHeader = true)
+                block.rows.forEach { row ->
+                    TableRow(row.padTo(columnCount), block.alignments, style, isHeader = false)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TableRow(
+    cells: List<String>,
+    alignments: List<TableAlignment>,
+    style: MarkdownStyle,
+    isHeader: Boolean,
+) {
+    Row(Modifier.background(if (isHeader) style.codeHeaderBackground else style.codeBackground)) {
+        cells.forEachIndexed { index, cell ->
+            val alignment = alignments.getOrElse(index) { TableAlignment.None }
+            val textAlignment = when (alignment) {
+                TableAlignment.Left -> TextAlign.Left
+                TableAlignment.Center -> TextAlign.Center
+                TableAlignment.Right -> TextAlign.Right
+                TableAlignment.None -> TextAlign.Left
+            }
+            Text(
+                text = buildInline(cell, style),
+                style = if (isHeader) style.body.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) else style.body,
+                textAlign = textAlignment,
+                modifier = Modifier.widthIn(min = 120.dp).padding(horizontal = 10.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+private fun List<String>.padTo(columnCount: Int): List<String> {
+    if (size >= columnCount) return take(columnCount)
+    return this + List(columnCount - size) { "" }
 }
 
 @Composable
