@@ -28,4 +28,4 @@ This project is currently in its early library/app setup phase. Add it to your A
 
 ## License
 
-This project is under active development.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.

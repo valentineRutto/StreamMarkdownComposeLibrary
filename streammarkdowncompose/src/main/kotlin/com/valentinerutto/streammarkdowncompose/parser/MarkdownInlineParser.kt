@@ -109,10 +109,14 @@ private fun AnnotatedString.Builder.appendInline(src: String, s: MarkdownStyle) 
     }
 }
 
-private fun sanitizeInlineHtml(source: String): String {
-    val dangerousElements = Regex("(?is)<\\/?(script|style|iframe|object|embed|svg|form|button|video|audio)\\b[^>]*>")
+internal fun sanitizeInlineHtml(source: String): String {
+    val dangerous = setOf("script", "style", "iframe", "object", "embed", "svg", "form", "button", "video", "audio")
+    var result = source
+    dangerous.forEach { tag ->
+        result = Regex("(?is)<$tag\\b[^>]*>.*?</$tag\\s*>").replace(result, "")
+        result = Regex("(?is)</?$tag\\b[^>]*>").replace(result, "")
+    }
     val allowedInline = setOf("b", "strong", "i", "em", "code", "s", "del", "br")
-    var result = dangerousElements.replace(source, "")
     result = Regex("(?is)<\\/?([a-z][a-z0-9]*)\\b[^>]*>").replace(result) { match ->
         val tag = match.groupValues[1].lowercase()
         if (tag !in allowedInline) ""
@@ -129,16 +133,13 @@ private fun decodeEntities(value: String): String = value
     .replace("&quot;", "\"")
     .replace("&#39;", "'")
 
-private fun isSafeLink(url: String): Boolean {
-    val normalized = url.lowercase().trim()
-    if (normalized.isEmpty()) return false
-    if (normalized.startsWith("javascript:") || normalized.startsWith("vbscript:")) return false
-    if (normalized.startsWith("file:") || normalized.startsWith("content:") || normalized.startsWith("intent:")) return false
-    if (normalized.startsWith("//")) return false
-    return normalized.startsWith("http://") ||
-        normalized.startsWith("https://") ||
-        normalized.startsWith("mailto:") ||
-        normalized.startsWith("tel:") ||
-        normalized.startsWith("/") ||
-        !normalized.contains(":")
+internal fun isSafeLink(url: String): Boolean {
+    val normalized = url.trim().replace(Regex("\\s+"), "")
+    if (normalized.isEmpty() || normalized.startsWith("//")) return false
+
+    val schemeEnd = normalized.indexOf(':')
+    if (schemeEnd < 0) return true
+
+    val scheme = normalized.substring(0, schemeEnd).lowercase()
+    return scheme in setOf("http", "https", "mailto", "tel")
 }

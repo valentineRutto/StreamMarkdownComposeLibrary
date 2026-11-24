@@ -1,24 +1,81 @@
 package com.valentinerutto.streammarkdowncompose
 
-import androidx.test.platform.app.InstrumentationRegistry
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-import org.junit.Assert.*
-
-/**
- * Instrumented test, which will execute on an Android device.
- *
- * See [testing documentation](http://d.android.com/tools/testing).
- */
 @RunWith(AndroidJUnit4::class)
-class ExampleInstrumentedTest {
+class StreamingMarkdownComposeTest {
+
+    @get:Rule
+    val composeRule = createAndroidComposeRule<ComponentActivity>()
+
     @Test
-    fun useAppContext() {
-        // Context of the app under test.
-        val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.valentinerutto.streammarkdowncompose.test", appContext.packageName)
+    fun rendersCompletedMarkdownContent() {
+        composeRule.setContent {
+            StreamingMarkdown(
+                text = """
+                    # Stream title
+
+                    **Bold text** and `inline code`
+
+                    - [ ] Unchecked task
+                    - [x] Checked task
+
+                    | Name | Status |
+                    |:-----|------:|
+                    | Kotlin | Ready |
+
+                    ```kotlin
+                    fun hello() = "Hello"
+                    ```
+
+                    <strong>Safe HTML</strong>
+                """.trimIndent()
+            )
+        }
+
+        composeRule.onNodeWithText("Stream title", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Unchecked task", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Checked task", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Name", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Ready", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("fun hello() = \"Hello\"", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Safe HTML", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun rendersNestedListsAndQuote() {
+        composeRule.setContent {
+            StreamingMarkdown(
+                text = """
+                    - Parent
+                      - Child
+                        - Grandchild
+
+                    > Quoted response
+                """.trimIndent()
+            )
+        }
+
+        composeRule.onNodeWithText("Parent", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Child", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Grandchild", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Quoted response", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun rendersHorizontalRuleAndHeadingLevels() {
+        composeRule.setContent {
+            StreamingMarkdown(text = "## H2 heading\n\n---\n\n###### H6 heading")
+        }
+
+        composeRule.onNodeWithText("H2 heading", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("H6 heading", substring = true).assertIsDisplayed()
     }
 }
