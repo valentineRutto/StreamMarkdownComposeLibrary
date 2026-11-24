@@ -7,8 +7,9 @@ object MarkdownParser {
     private val heading = Regex("^(#{1,6})\\s+(.*)$")
     private val bullet = Regex("^(\\s*)[-*+]\\s+(.*)$")
     private val ordered = Regex("^(\\s*)(\\d{1,9})[.)]\\s+(.*)$")
-    private val divider = Regex("^\\s*([-*_])(\\s*\\1){2,}\\s*$")
+    private val divider = Regex("^\\s*(?:(?:-[\\t ]*){3,}|(?:\\*[\\t ]*){3,}|(?:_[\\t ]*){3,})\\s*$")
     private val task = Regex("^\\[([ xX])\\]\\s*(.*)$")
+    private val fenceOpening = Regex("^ {0,3}(`{3,}|~{3,})([^\\r\\n]*)$")
 
     fun parse(source: CharSequence): List<MarkdownBlock> {
         val lines = source.toString().replace("\r\n", "\n").split('\n')
@@ -23,15 +24,20 @@ object MarkdownParser {
                 i == lastIdx && isPartialFence(line) -> i++
                 line.isBlank() -> i++
 
-                trimmed.startsWith("```") || trimmed.startsWith("~~~") -> {
-                    val fenceChar = trimmed[0]
-                    val lang = trimmed.dropWhile { it == fenceChar }.trim().takeIf { it.isNotEmpty() }
+                isOpeningFence(line) -> {
+                    val opening = fenceOpening.find(line)!!
+                    val marker = opening.groupValues[1]
+                    val fenceChar = marker[0]
+                    val openingFenceLength = marker.length
+                    val language = opening.groupValues[2].trim().takeIf { it.isNotEmpty() }
                     val code = ArrayList<String>()
                     var closed = false
                     i++
+
                     while (i < lines.size) {
-                        val t = lines[i].trim()
-                        if (t.length >= 3 && t.all { it == fenceChar }) {
+                        val closing = lines[i].trim()
+                        val closingFenceLength = closing.takeWhile { it == fenceChar }.length
+                        if (closing.length == closingFenceLength && closingFenceLength >= openingFenceLength) {
                             closed = true
                             i++
                             break
@@ -39,8 +45,11 @@ object MarkdownParser {
                         code += lines[i]
                         i++
                     }
-                    if (!closed && code.isNotEmpty() && isPartialFence(code.last())) code.removeAt(code.lastIndex)
-                    out += CodeBlock(lang, code.joinToString("\n"), closed)
+
+                    if (!closed && code.isNotEmpty() && isPartialFence(code.last())) {
+                        code.removeAt(code.lastIndex)
+                    }
+                    out += CodeBlock(language, code.joinToString("\n"), closed)
                 }
 
                 heading.matches(line) -> {
@@ -276,15 +285,17 @@ object MarkdownParser {
 
     private fun isPartialFence(line: String): Boolean {
         val t = line.trim()
-        return t.isNotEmpty() && t.length < 3 && t.all { it == '`' }
+        return t.isNotEmpty() && t.length < 3 && (t.all { it == '`' } || t.all { it == '~' })
     }
 
     private fun startsBlock(line: String): Boolean {
         val t = line.trimStart()
-        return t.startsWith("```") || t.startsWith("~~~") || t.startsWith(">") ||
+        return isOpeningFence(t) || t.startsWith(">") ||
             heading.matches(line) || bullet.matches(line) || ordered.matches(line) || divider.matches(line) ||
             isTableLinePair(line) || containsHtmlBlock(t)
     }
 
     private fun isTableLinePair(line: String): Boolean = splitTableRow(line)?.let { it.size > 1 } == true
+
+    private fun isOpeningFence(line: String): Boolean = fenceOpening.matches(line)
 }

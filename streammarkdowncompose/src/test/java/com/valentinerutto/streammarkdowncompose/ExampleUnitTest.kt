@@ -175,4 +175,110 @@ class MarkdownParserTest {
         val block = MarkdownParser.parse(source).single() as Paragraph
         assertEquals(source, block.text)
     }
+
+    @Test
+    fun horizontalRuleAndAdjacentFencesRemainSeparateBlocks() {
+        val source = """
+            ### Horizontal rule
+
+            ---
+
+            ### Fenced code
+
+            ```kotlin
+            StreamingMarkdown(
+                chunks = stream,
+                modifier = Modifier.padding(16.dp)
+            )
+            ```
+
+            ```python
+            def greet(name):
+                print(f"Hello, {name}!")
+            ```
+        """.trimIndent()
+
+        val blocks = MarkdownParser.parse(source)
+        assertTrue(blocks.any { it is Heading && it.text == "Horizontal rule" })
+        assertTrue(blocks.any { it is Divider })
+        assertTrue(blocks.any { it is Heading && it.text == "Fenced code" })
+        assertEquals(2, blocks.filterIsInstance<CodeBlock>().size)
+        assertTrue(blocks.filterIsInstance<CodeBlock>().all { it.isClosed })
+    }
+
+    @Test
+    fun mainActivitySampleProducesTwoExactClosedCodeBlocks() {
+        val source = """
+            ### Fenced code
+
+            ```kotlin
+            StreamingMarkdown(
+                chunks = stream,
+                modifier = Modifier.padding(16.dp)
+            )
+            ```
+
+            ```python
+            def greet(name):
+                print(f"Hello, {name}!")
+            ```
+        """.trimIndent()
+
+        val blocks = MarkdownParser.parse(source)
+        val fences = blocks.filterIsInstance<CodeBlock>()
+        assertEquals(2, fences.size)
+        assertTrue(fences.all { it.isClosed })
+
+        assertEquals("kotlin", fences[0].language)
+        assertEquals("""
+            StreamingMarkdown(
+                chunks = stream,
+                modifier = Modifier.padding(16.dp)
+            )
+        """.trimIndent(), fences[0].code)
+
+        assertEquals("python", fences[1].language)
+        assertEquals("""
+            def greet(name):
+                print(f"Hello, {name}!")
+        """.trimIndent(), fences[1].code)
+    }
+
+    @Test
+    fun recognizesHorizontalRuleVariants() {
+        listOf("---", "***", "___", "- - -", "* * *", "_ _ _").forEach { rule ->
+            assertTrue("Expected divider: $rule", MarkdownParser.parse(rule).single() is Divider)
+        }
+    }
+
+    @Test
+    fun tildeFencePreservesCodeAndLanguage() {
+        val block = MarkdownParser.parse("~~~python\ndef greet():\n    print('hello')\n~~~").single() as CodeBlock
+        assertEquals("python", block.language)
+        assertTrue(block.isClosed)
+        assertEquals("def greet():\n    print('hello')", block.code)
+    }
+
+    @Test
+    fun emptyAndUnclosedCodeFences() {
+        val empty = MarkdownParser.parse("```json\n``` ").single() as CodeBlock
+        assertTrue(empty.isClosed)
+        assertEquals("", empty.code)
+
+        val unclosed = MarkdownParser.parse("```kotlin\nfun main() {}").single() as CodeBlock
+        assertFalse(unclosed.isClosed)
+        assertEquals("fun main() {}", unclosed.code)
+    }
+
+    @Test
+    fun codeFenceSplitAcrossMultipleChunksClosesAtFinalFence() = runTest {
+        val chunks = flowOf("### Fenced", " code\n\n", "```", "kotlin\n", "fun main()", " {\n}", "\n```")
+        val finalText = chunks.scan("") { accumulated, delta -> accumulated + delta }.toList().last()
+        val blocks = MarkdownParser.parse(finalText)
+        val fences = blocks.filterIsInstance<CodeBlock>()
+        assertEquals(1, fences.size)
+        assertEquals("kotlin", fences[0].language)
+        assertTrue(fences[0].isClosed)
+        assertEquals("fun main() {\n}", fences[0].code)
+    }
 }

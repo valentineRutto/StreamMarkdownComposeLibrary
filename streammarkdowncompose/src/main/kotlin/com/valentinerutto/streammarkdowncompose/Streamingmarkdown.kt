@@ -35,6 +35,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -61,13 +62,19 @@ fun StreamingMarkdown(
     var blocks by remember(chunks) { mutableStateOf<List<MarkdownBlock>>(emptyList()) }
 
     LaunchedEffect(chunks) {
-        chunks
-            .scan("") { acc, delta -> acc + delta }   // accumulate
-            .conflate()                               // if parsing is slower than the stream, skip to the latest text
-            .map { MarkdownParser.parse(it) }         // parse off the main thread
-            .flowOn(Dispatchers.Default)
-            .collect { blocks = it }
-        onComplete()
+        try {
+            chunks
+                .scan("") { acc, delta -> acc + delta } // keep every delta in order
+                .map { MarkdownParser.parse(it) }        // parse off the main thread
+                .flowOn(Dispatchers.Default)
+                .conflate()                              // skip stale parsed snapshots, not accumulated text
+                .collect { parsedBlocks -> blocks = parsedBlocks }
+            onComplete()
+        } catch (_: CancellationException) {
+            // Composition disposal or flow replacement cancels collection; not stream completion.
+        } catch (_: Throwable) {
+            // Keep the last valid Markdown snapshot instead of clearing the UI.
+        }
     }
 
     MarkdownBlocks(blocks, modifier, style, highlighter)
@@ -216,7 +223,12 @@ private fun CodeBlockView(block: CodeBlock, style: MarkdownStyle, highlighter: C
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(block.language ?: "code", style = style.codeLabel)
-            TextButton(onClick = { clipboard.setText(AnnotatedString(block.code)); copied = true }) {
+            TextButton(
+                onClick = {
+                    clipboard.setText(AnnotatedString(block.code))
+                    copied = true
+                },
+            ) {
                 Text(if (copied) "Copied" else "Copy", fontSize = 12.sp)
             }
         }

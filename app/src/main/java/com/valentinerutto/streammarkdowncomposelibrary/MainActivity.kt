@@ -99,8 +99,8 @@ class MainActivity : ComponentActivity() {
                                 ```
                             """.trimIndent()
 
-                            content.split(Regex("(?<=\\n)|(?<= )")).forEach { chunk ->
-                                emit(chunk)
+                            content.lines().forEach { line ->
+                                emit("$line\n")
                                 delay(18)
                             }
                         }

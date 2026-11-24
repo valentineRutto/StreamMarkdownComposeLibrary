@@ -22,6 +22,8 @@ fun interface CodeHighlighter {
 object SimpleCodeHighlighter : CodeHighlighter {
 
     private val hashLangs = setOf("python", "py", "bash", "sh", "shell", "zsh", "yaml", "yml", "ruby", "rb", "toml", "dockerfile")
+    private val sqlLangs = setOf("sql", "mysql", "postgresql", "postgres")
+    private val xmlLangs = setOf("xml", "html", "xhtml", "svg")
 
     private val keywords = setOf(
         "fun", "val", "var", "class", "object", "interface", "sealed", "data", "enum", "override", "private", "public",
@@ -41,7 +43,13 @@ object SimpleCodeHighlighter : CodeHighlighter {
     private val hashRegex = Regex(listOf("(#[^\\n]*|//[^\\n]*)", STRING, NUMBER, WORD).joinToString("|"))
 
     override fun highlight(code: String, language: String?, colors: SyntaxColors): AnnotatedString {
-        val re = if (language.orEmpty().lowercase() in hashLangs) hashRegex else slashRegex
+        val normalizedLanguage = language
+            ?.trim()
+            ?.lowercase()
+            ?.substringBefore(' ')
+            ?.substringBefore('-')
+            ?: ""
+        val re = if (normalizedLanguage in hashLangs) hashRegex else slashRegex
         return buildAnnotatedString {
             var last = 0
             for (m in re.findAll(code)) {

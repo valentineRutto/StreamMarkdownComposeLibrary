@@ -38,6 +38,7 @@ fun markdownStyle(): MarkdownStyle {
     val cs = MaterialTheme.colorScheme
     val ty = MaterialTheme.typography
     val dark = cs.background.luminance() < 0.5f
+
     return remember(cs, ty) {
         val bold = FontWeight.Bold
 
