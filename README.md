@@ -34,7 +34,7 @@ This project is currently in its early library/app setup phase. Add it to your A
 
 Render a complete Markdown message:
 
-```kotlin
+````kotlin
 StreamingMarkdown(
     text = """
         # StreamMarkdownCompose
@@ -47,7 +47,7 @@ StreamingMarkdown(
         ```
     """.trimIndent()
 )
-```
+````
 
 Render text arriving through a Kotlin `Flow`:
 
@@ -140,6 +140,33 @@ Code highlighting is regex-based and is not a full language parser. A custom hig
 - Arbitrary/raw HTML rendering
 - Mermaid diagrams
 - LaTeX or math expressions
+
+## Requirements
+
+- Android `minSdk 24` or higher
+- Kotlin `2.2.10` or newer
+- Jetpack Compose
+- Material 3
+- Kotlin Coroutines `1.11.0` or newer
+- Java 11 source compatibility
+
+The library uses Jetpack Compose UI, Foundation, and Material 3. The Compose implementation is built with the Compose BOM `2024.09.00`. Applications can manage their Compose dependencies through their own BOM, but should keep Compose UI and Material 3 versions compatible with each other.
+
+For streamed Markdown, the consuming application should include Coroutines and expose the response as `kotlinx.coroutines.flow.Flow<String>`.
+
+## Installation
+
+Until the Maven Central release is available, use the library as a local Gradle module:
+
+```kotlin
+implementation(project(":streammarkdowncompose"))
+```
+
+After publication, add the Maven Central artifact:
+
+```kotlin
+implementation("io.github.valentinerutto:streammarkdowncompose:1.0.0")
+```
 
 ## License
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
