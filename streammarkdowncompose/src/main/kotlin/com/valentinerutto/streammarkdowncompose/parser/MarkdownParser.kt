@@ -241,6 +241,8 @@ object MarkdownParser {
 
     private fun collectHtml(lines: List<String>, start: Int): ParsedHtml {
         val tagRegex = Regex("(?is)<\\/?([a-z][a-z0-9]*)\\b[^>]*>")
+        val rootTag = Regex("(?i)^\\s*<([a-z][a-z0-9]*)\\b").find(lines[start])
+            ?.groupValues?.get(1)
         val dangerous = setOf("script", "style", "iframe", "object", "embed", "svg", "form", "button", "video", "audio")
         val text = StringBuilder()
         var i = start
@@ -259,6 +261,9 @@ object MarkdownParser {
 
             i++
             val trimmed = line.trim()
+            // A block such as <p>text</p> can open and close on the same line.
+            // Stop at its matching close tag so following Markdown isn't swallowed.
+            if (rootTag != null && Regex("</${Regex.escape(rootTag)}\\s*>", RegexOption.IGNORE_CASE).containsMatchIn(line)) break
             if (trimmed.matches(Regex("(?is)^<\\/(p|div|section|table|ul|ol|blockquote|h[1-6])\\s*>.*$"))) break
             if (i < lines.size && line.trim().startsWith("<") &&
                 !line.trim().contains('>') && !lines[i].trim().contains('>')) break
