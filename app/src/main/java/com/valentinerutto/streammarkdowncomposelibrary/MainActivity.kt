@@ -112,7 +112,9 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(innerPadding)
                             .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
+                            .padding(16.dp),
+                        onLinkClick = { println("Link clicked: $it") },
+                        onComplete = { println("Complete clicked") },
                     )
                 }
             }
