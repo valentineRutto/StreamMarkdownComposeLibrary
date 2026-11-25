@@ -4,15 +4,28 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.valentinerutto.streammarkdowncompose.CodeHighlighter
+import com.valentinerutto.streammarkdowncompose.SimpleCodeHighlighter
 import com.valentinerutto.streammarkdowncompose.StreamingMarkdown
+import com.valentinerutto.streammarkdowncompose.markdownStyle
 import com.valentinerutto.streammarkdowncomposelibrary.ui.theme.StreamMarkdownComposeLibraryTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
@@ -23,6 +36,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             StreamMarkdownComposeLibraryTheme {
+                var streamStatus by remember { mutableStateOf("Streaming…") }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     val markdownFlow = remember {
                         flow {
@@ -39,7 +53,7 @@ class MainActivity : ComponentActivity() {
 
                                 You can also use [safe links](https://developer.android.com) and escaped characters: \*not italic\*, \[not a link\], \# not a heading, and \| not a table separator.
 
-                                Safe inline HTML: <strong>bold HTML</strong>, <em>italic HTML</em>, and <code>inline HTML code</code>.
+                                HTML note: <br> creates a line break; block HTML tags are stripped to text.
 
                                 ### Unordered and nested lists
 
@@ -69,7 +83,7 @@ class MainActivity : ComponentActivity() {
                                 | Task lists | Ready | Read-only checkboxes |
                                 | Tables | Ready | Horizontally scrollable |
                                 | Escapes | Ready | Backslash-aware |
-                                | HTML | Limited | Safe inline/block tags |
+                                | HTML | Limited | Block tags stripped; `<br>` supported |
 
                                 ### Quote
 
@@ -78,7 +92,7 @@ class MainActivity : ComponentActivity() {
 
                                 ### Block HTML
 
-                                <p>This is <strong>bold HTML text</strong> inside a block.</p>
+                                <p>Block HTML tags are stripped, leaving this text.</p>
 
                                 ### Horizontal rule
 
@@ -106,17 +120,54 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    StreamingMarkdown(
-                        chunks = markdownFlow,
+                    val defaultStyle = markdownStyle()
+                    val customStyle = defaultStyle.copy(
+                        body = defaultStyle.body.copy(fontSize = 16.sp, lineHeight = 24.sp),
+                        link = defaultStyle.link.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            textDecoration = TextDecoration.Underline,
+                        ),
+                        codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+                        codeHeaderBackground = MaterialTheme.colorScheme.secondaryContainer,
+                        blockSpacing = 14.dp,
+                    )
+                    val customHighlighter = remember {
+                        CodeHighlighter { code, language, colors ->
+                            SimpleCodeHighlighter.highlight(
+                                code = code,
+                                language = language,
+                                colors = colors.copy(function = Color(0xFF7C4DFF)),
+                            )
+                        }
+                    }
+
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(innerPadding)
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
-                        onLinkClick = { println("Link clicked: $it") },
-                        onComplete = { println("Complete ") },
-                        onError = { println("Error : $it") }
-                    )
+                            .padding(innerPadding),
+                    ) {
+                        Text(
+                            text = "Stream status: $streamStatus",
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
+
+                        StreamingMarkdown(
+                            chunks = markdownFlow,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp),
+                            style = customStyle,
+                            highlighter = customHighlighter,
+                            onLinkClick = { url -> streamStatus = "Link selected: $url" },
+                            onError = { error ->
+                                streamStatus = "Stream failed: ${error.message ?: "unknown error"}"
+                            },
+                            onComplete = { streamStatus = "Completed" },
+                        )
+                    }
                 }
             }
         }
