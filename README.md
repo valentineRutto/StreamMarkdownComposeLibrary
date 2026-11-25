@@ -32,10 +32,56 @@ This project is currently in its early library/app setup phase. Add it to your A
 
 ## Example
 
+Render a complete Markdown message:
+
 ```kotlin
-// Example intent:
-// Send a stream of AI output into StreamMarkdownCompose
-// and let the library render the content appropriately.
+StreamingMarkdown(
+    text = """
+        # StreamMarkdownCompose
+
+        - Parse incremental AI responses
+        - Render **bold**, *italic*, and `inline code`
+
+        ```kotlin
+        val greeting = "Hello"
+        ```
+    """.trimIndent()
+)
+```
+
+Render text arriving through a Kotlin `Flow`:
+
+```kotlin
+val responseFlow: Flow<String> = viewModel.responseStream
+
+StreamingMarkdown(
+    chunks = responseFlow,
+    modifier = Modifier.fillMaxWidth(),
+    onComplete = {
+        // Called after the stream finishes successfully
+    }
+)
+```
+
+Keep the `Flow` stable across recompositions. When creating it in Compose, remember it by the message or conversation identifier:
+
+```kotlin
+val responseFlow = remember(messageId) {
+    viewModel.streamResponse(messageId)
+}
+
+StreamingMarkdown(chunks = responseFlow)
+```
+
+Customize the renderer theme:
+
+```kotlin
+StreamingMarkdown(
+    text = markdown,
+    style = markdownStyle().copy(
+        blockSpacing = 14.dp
+    )
+)
 ```
 
 ## Supported Markdown
