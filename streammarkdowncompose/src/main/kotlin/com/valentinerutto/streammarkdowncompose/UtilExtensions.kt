@@ -14,6 +14,7 @@ internal fun Flow<String>.accumulatedSnapshots(intervalMillis: Long): Flow<Strin
             synchronized(lock) { text.append(delta) }
         }
     }
+
     var lastSnapshot = ""
 
     while (producer.isActive) {
