@@ -56,10 +56,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.scan
 
-/** Above this size a code block that is still growing is shown without colors (highlighting re-runs every chunk). */
-private const val LIVE_HIGHLIGHT_LIMIT = 3_000
+/** Cap parser work during fast streams while keeping updates visually responsive. */
+private const val STREAM_PARSE_INTERVAL_MS = 50L
 
 /**
  * Renders markdown from a stream of text deltas.
@@ -93,10 +92,10 @@ fun StreamingMarkdown(
         isStreaming = true
         try {
             chunks
-                .scan("") { acc, delta -> acc + delta } // every delta, in order
-                .conflate()                             // accumulated text is cumulative, so skipping stale ones loses nothing
-                .map { MarkdownParser.parse(it) }       // parse only the latest text...
-                .flowOn(Dispatchers.Default)            // ...off the main thread
+                .accumulatedSnapshots(STREAM_PARSE_INTERVAL_MS)
+                .conflate()                             // snapshots are cumulative; parsing an older one is unnecessary
+                .map { MarkdownParser.parse(it) }
+                .flowOn(Dispatchers.Default)            // parse off the main thread
                 .collect { blocks = it }
             latestOnComplete()
         } catch (e: CancellationException) {
@@ -348,9 +347,6 @@ private fun TableCell(
     }
 }
 
-private fun List<String>.padTo(columnCount: Int): List<String> =
-    if (size >= columnCount) take(columnCount) else this + List(columnCount - size) { "" }
-
 // ------------------------------------------------------------------------- text + code
 
 @Composable
@@ -377,8 +373,8 @@ private fun CodeBlockView(
     var copied by remember { mutableStateOf(false) }
     LaunchedEffect(copied) { if (copied) { delay(1_500); copied = false } }
 
-    val highlighted = remember(block.code, block.language, style.syntax, streaming) {
-        if (streaming && block.code.length > LIVE_HIGHLIGHT_LIMIT) AnnotatedString(block.code)
+    val highlighted = remember(block.code, block.language, style.syntax, streaming, block.isClosed) {
+        if (streaming && !block.isClosed) AnnotatedString(block.code)
         else highlighter.highlight(block.code, block.language, style.syntax)
     }
 
