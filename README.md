@@ -1,18 +1,30 @@
-# StreamMarkdownComposeLibrary
+# StreamMarkdownCompose
 
-StreamMarkdownCompose — A native Android streaming content renderer Library for AI applications.
+A lightweight, streaming Markdown renderer for Jetpack Compose and native Android applications.
 
-Send a stream. Let the library figure out how to render it.
+StreamMarkdownCompose turns incremental text—such as AI-generated responses—into structured, styled Compose UI. It supports Markdown blocks, inline formatting, tables, task lists, fenced code blocks, syntax highlighting, and a configurable theme.
 
 ## Overview
 
-StreamMarkdownCompose is designed for apps that need to render streaming AI-generated content in a native Android UI. Instead of forcing each response format to be manually handled, the library interprets the incoming stream and decides how to present it in Compose.
+StreamMarkdownCompose is built for text that arrives a chunk at a time. It maintains the complete streamed response, parses it into immutable Markdown blocks, and updates the Compose UI as new chunks arrive. The same parser and renderer can also be used for complete, stored Markdown messages.
+
+It provides:
+
+- Separate APIs for Kotlin `Flow` streams and complete strings
+- Streaming-safe parsing for unfinished Markdown fences and formatting
+- Native Jetpack Compose rendering without a WebView
+- Material 3-aware default styling
+- Customizable text and syntax colors
+- Safe handling of links and limited HTML
+- A replaceable code highlighter
 
 ## Purpose
 
-- Render streamed text and structured content in Android apps
-- Fit naturally into Jetpack Compose UIs
-- Help AI-driven experiences show content without custom parsing logic for every response type
+- Render streaming AI or chat responses naturally in Android apps
+- Display Markdown without manually tracking or splitting streamed chunks
+- Preserve a valid UI snapshot when a stream is cancelled or parsing an intermediate state
+- Integrate into Compose layouts with configurable modifiers and styles
+- Support both live streaming messages and complete chat-history messages
 
 ## Getting started
 
