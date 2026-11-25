@@ -26,44 +26,45 @@ It provides:
 - Integrate into Compose layouts with configurable modifiers and styles
 - Support both live streaming messages and complete chat-history messages
 
-## Getting started
+## Use cases and examples
 
-This project is currently in its early library/app setup phase. Add it to your Android project and build your UI around the stream-rendering primitives as the library evolves.
+### Render saved Markdown with the defaults
 
-## Example
-
-Render a complete Markdown message:
-
-````kotlin
-StreamingMarkdown(
-    text = """
-        # StreamMarkdownCompose
-
-        - Parse incremental AI responses
-        - Render **bold**, *italic*, and `inline code`
-
-        ```kotlin
-        val greeting = "Hello"
-        ```
-    """.trimIndent()
-)
-````
-
-Render text arriving through a Kotlin `Flow`:
+Use the `text` overload for completed responses, such as chat history. If you omit `style` and `highlighter`, the library uses `markdownStyle()` and `SimpleCodeHighlighter`.
 
 ```kotlin
-val responseFlow: Flow<String> = viewModel.responseStream
+@Composable
+fun SavedAssistantMessage(markdown: String) {
+    StreamingMarkdown(text = markdown)
+}
+```
 
+The defaults can also be passed explicitly:
+
+```kotlin
 StreamingMarkdown(
-    chunks = responseFlow,
+    text = markdown,
     modifier = Modifier.fillMaxWidth(),
-    onComplete = {
-        // Called after the stream finishes successfully
-    }
+    style = markdownStyle(),
+    highlighter = SimpleCodeHighlighter,
 )
 ```
 
-Keep the `Flow` stable across recompositions. When creating it in Compose, remember it by the message or conversation identifier:
+### Render a live response with the defaults
+
+Pass a `Flow<String>` to the `chunks` overload. The renderer collects the flow and updates the Markdown as text arrives.
+
+```kotlin
+@Composable
+fun LiveAssistantMessage(response: Flow<String>) {
+    StreamingMarkdown(
+        chunks = response,
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+```
+
+Keep the flow stable across recompositions. When creating it in Compose, remember it by the message or conversation identifier:
 
 ```kotlin
 val responseFlow = remember(messageId) {
@@ -73,16 +74,81 @@ val responseFlow = remember(messageId) {
 StreamingMarkdown(chunks = responseFlow)
 ```
 
-Customize the renderer theme:
+### Customize the style
+
+Start with `markdownStyle()` to inherit the current Material 3 typography and colors, then copy only the values you want to change:
 
 ```kotlin
-StreamingMarkdown(
-    text = markdown,
-    style = markdownStyle().copy(
-        blockSpacing = 14.dp
+@Composable
+fun StyledAssistantMessage(markdown: String) {
+    val defaults = markdownStyle()
+    val customStyle = defaults.copy(
+        body = defaults.body.copy(fontSize = 16.sp, lineHeight = 24.sp),
+        link = defaults.link.copy(color = MaterialTheme.colorScheme.tertiary),
+        codeBackground = MaterialTheme.colorScheme.surfaceVariant,
+        codeHeaderBackground = MaterialTheme.colorScheme.secondaryContainer,
+        blockSpacing = 14.dp,
     )
-)
+
+    StreamingMarkdown(text = markdown, style = customStyle)
+}
 ```
+
+### Customize code highlighting
+
+Implement `CodeHighlighter`, or wrap `SimpleCodeHighlighter` and adjust its syntax colors. This example keeps the built-in language support and changes the function color:
+
+```kotlin
+private val appCodeHighlighter = CodeHighlighter { code, language, colors ->
+    SimpleCodeHighlighter.highlight(
+        code = code,
+        language = language,
+        colors = colors.copy(function = Color(0xFF7C4DFF)),
+    )
+}
+
+@Composable
+fun HighlightedAssistantMessage(markdown: String) {
+    StreamingMarkdown(
+        text = markdown,
+        highlighter = appCodeHighlighter,
+    )
+}
+```
+
+### Use every streaming argument and handle completion
+
+The complete streaming overload accepts the flow, layout modifier, style, highlighter, link callback, error callback, and successful-completion callback:
+
+```kotlin
+@Composable
+fun LiveAssistantResponse(
+    response: Flow<String>,
+    openLink: (String) -> Unit,
+    reportError: (Throwable) -> Unit,
+    saveCompletedResponse: () -> Unit,
+) {
+    val defaults = markdownStyle()
+    val customStyle = defaults.copy(
+        body = defaults.body.copy(fontSize = 16.sp),
+        blockSpacing = 12.dp,
+    )
+
+    StreamingMarkdown(
+        chunks = response,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        style = customStyle,
+        highlighter = appCodeHighlighter,
+        onLinkClick = { url -> openLink(url) },
+        onError = { error -> reportError(error) },
+        onComplete = { saveCompletedResponse() },
+    )
+}
+```
+
+`onComplete` runs after the flow finishes normally and the final text has been handed to the UI. `onError` receives a flow or rendering error; cancellation does not call it. When `onLinkClick` is supplied, use it to route link taps through your app's navigation or confirmation flow.
 
 ## Supported Markdown
 
@@ -113,12 +179,7 @@ StreamMarkdownCompose is designed for streaming chat and AI responses. It curren
 - Safe links using `http`, `https`, `mailto`, and `tel`
 - Backslash escaping for Markdown punctuation
 - Basic HTML entities
-- Limited inline HTML:
-  - `<b>`, `<strong>`
-  - `<i>`, `<em>`
-  - `<code>`
-  - `<s>`, `<del>`
-  - `<br>`
+- `<br>` line breaks
 
 Dangerous HTML such as scripts, styles, iframes, forms, and media elements is removed rather than rendered.
 
@@ -136,7 +197,6 @@ Code highlighting is regex-based and is not a full language parser. A custom hig
 - Footnotes
 - Definition lists
 - Reference-style links
-- Bare URL/autolink detection
 - Arbitrary/raw HTML rendering
 - Mermaid diagrams
 - LaTeX or math expressions
