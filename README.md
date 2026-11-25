@@ -116,39 +116,63 @@ fun HighlightedAssistantMessage(markdown: String) {
 }
 ```
 
-### Use every streaming argument and handle completion
+### Handle link taps
 
-The complete streaming overload accepts the flow, layout modifier, style, highlighter, link callback, error callback, and successful-completion callback:
+Use `onLinkClick` to route tapped Markdown links through app navigation, open an in-app browser, or ask the user before leaving the screen:
 
 ```kotlin
 @Composable
-fun LiveAssistantResponse(
+fun AssistantMessage(
     response: Flow<String>,
-    openLink: (String) -> Unit,
-    reportError: (Throwable) -> Unit,
-    saveCompletedResponse: () -> Unit,
+    navigateToLink: (String) -> Unit,
 ) {
-    val defaults = markdownStyle()
-    val customStyle = defaults.copy(
-        body = defaults.body.copy(fontSize = 16.sp),
-        blockSpacing = 12.dp,
-    )
-
     StreamingMarkdown(
         chunks = response,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        style = customStyle,
-        highlighter = appCodeHighlighter,
-        onLinkClick = { url -> openLink(url) },
-        onError = { error -> reportError(error) },
-        onComplete = { saveCompletedResponse() },
+        modifier = Modifier.fillMaxWidth(),
+        onLinkClick = { url -> navigateToLink(url) },
     )
 }
 ```
 
-`onComplete` runs after the flow finishes normally and the final text has been handed to the UI. `onError` receives a flow or rendering error; cancellation does not call it. When `onLinkClick` is supplied, use it to route link taps through your app's navigation or confirmation flow.
+When `onLinkClick` is provided, the app handles link taps. Without it, the renderer uses Compose's default URL handling for supported absolute links.
+
+### Handle stream errors
+
+Use `onError` to report a failed response, show an error message, or trigger retry UI. Cancellation does not call this callback:
+
+```kotlin
+@Composable
+fun AssistantMessageWithErrors(
+    response: Flow<String>,
+    reportError: (Throwable) -> Unit,
+) {
+    StreamingMarkdown(
+        chunks = response,
+        modifier = Modifier.fillMaxWidth(),
+        onError = { error -> reportError(error) },
+    )
+}
+```
+
+### Handle successful completion
+
+Use `onComplete` for work that should happen after the flow finishes normally, such as marking a response complete or enabling follow-up actions:
+
+```kotlin
+@Composable
+fun AssistantMessageOnComplete(
+    response: Flow<String>,
+    onResponseComplete: () -> Unit,
+) {
+    StreamingMarkdown(
+        chunks = response,
+        modifier = Modifier.fillMaxWidth(),
+        onComplete = { onResponseComplete() },
+    )
+}
+```
+
+`onComplete` runs after the final text has been handed to the UI. It is not called when the flow fails or is cancelled.
 
 ## Supported Markdown
 
