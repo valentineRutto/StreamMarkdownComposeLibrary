@@ -1,4 +1,4 @@
-package com.valentinerutto.streammarkdowncompose
+package com.valentinerutto.streammarkdowncompose.parser
 
 import androidx.compose.runtime.Immutable
 

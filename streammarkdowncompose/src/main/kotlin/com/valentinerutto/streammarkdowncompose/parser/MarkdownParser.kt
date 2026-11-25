@@ -1,6 +1,6 @@
-package com.valentinerutto.streammarkdowncompose
+package com.valentinerutto.streammarkdowncompose.parser
 
-import com.valentinerutto.streammarkdowncompose.MarkdownBlock.*
+import com.valentinerutto.streammarkdowncompose.parser.MarkdownBlock.*
 
 /** Tolerant block parser for streamed Markdown prefixes. */
 object MarkdownParser {

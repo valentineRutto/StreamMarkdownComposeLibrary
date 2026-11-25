@@ -35,6 +35,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.valentinerutto.streammarkdowncompose.parser.ListItem
+import com.valentinerutto.streammarkdowncompose.parser.MarkdownBlock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -43,7 +45,11 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
-import com.valentinerutto.streammarkdowncompose.MarkdownBlock.*
+import com.valentinerutto.streammarkdowncompose.parser.MarkdownBlock.*
+import com.valentinerutto.streammarkdowncompose.parser.MarkdownParser
+import com.valentinerutto.streammarkdowncompose.parser.TableAlignment
+import com.valentinerutto.streammarkdowncompose.parser.TaskState
+import com.valentinerutto.streammarkdowncompose.parser.buildInline
 
 /**
  * Renders markdown from a stream of text deltas.

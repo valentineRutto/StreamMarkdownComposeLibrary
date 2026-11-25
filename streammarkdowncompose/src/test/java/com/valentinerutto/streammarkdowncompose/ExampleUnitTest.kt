@@ -1,6 +1,12 @@
 package com.valentinerutto.streammarkdowncompose
 
-import com.valentinerutto.streammarkdowncompose.MarkdownBlock.*
+import com.valentinerutto.streammarkdowncompose.parser.MarkdownBlock
+import com.valentinerutto.streammarkdowncompose.parser.MarkdownBlock.*
+import com.valentinerutto.streammarkdowncompose.parser.MarkdownParser
+import com.valentinerutto.streammarkdowncompose.parser.TableAlignment
+import com.valentinerutto.streammarkdowncompose.parser.TaskState
+import com.valentinerutto.streammarkdowncompose.parser.isSafeLink
+import com.valentinerutto.streammarkdowncompose.parser.sanitizeInlineHtml
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.scan
@@ -132,7 +138,9 @@ class MarkdownParserTest {
 
     @Test
     fun inlineHtmlSanitizesDangerousAndUnknownTags() {
-        assertEquals("Hello world", sanitizeInlineHtml("<p>Hello <strong>world</strong><script>bad()</script></p>"))
+        assertEquals("Hello world",
+            sanitizeInlineHtml("<p>Hello <strong>world</strong><script>bad()</script></p>")
+        )
         assertFalse(sanitizeInlineHtml("<iframe src='bad'>bad</iframe>").contains("bad"))
     }
 

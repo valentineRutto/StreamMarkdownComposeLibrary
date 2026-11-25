@@ -112,7 +112,11 @@ class MainActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(innerPadding)
                             .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
+                            .padding(16.dp),
+
+                        style = TODO(),
+                        highlighter = TODO(),
+                        onComplete = TODO()
                     )
                 }
             }

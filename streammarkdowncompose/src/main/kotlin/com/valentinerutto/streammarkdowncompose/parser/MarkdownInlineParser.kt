@@ -1,4 +1,4 @@
-package com.valentinerutto.streammarkdowncompose
+package com.valentinerutto.streammarkdowncompose.parser
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import com.valentinerutto.streammarkdowncompose.MarkdownStyle
 
 /** Streaming-safe inline parser for code, emphasis, links, escapes, and safe HTML. */
 internal fun buildInline(src: String, style: MarkdownStyle): AnnotatedString =
