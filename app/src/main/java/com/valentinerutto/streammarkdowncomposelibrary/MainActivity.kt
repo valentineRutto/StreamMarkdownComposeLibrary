@@ -114,7 +114,8 @@ class MainActivity : ComponentActivity() {
                             .verticalScroll(rememberScrollState())
                             .padding(16.dp),
                         onLinkClick = { println("Link clicked: $it") },
-                        onComplete = { println("Complete clicked") },
+                        onComplete = { println("Complete ") },
+                        onError = { println("Error : $it") }
                     )
                 }
             }
